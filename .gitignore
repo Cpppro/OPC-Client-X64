@@ -10,3 +10,8 @@ x64/Debug/
 *.sdf
 *.opensdf
 *.suo
+Debug/
+LocalSyncWrapper/Debug/
+*.opendb
+*.db
+enc_temp_folder/
