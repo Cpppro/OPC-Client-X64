@@ -52,12 +52,13 @@ void COPCItem::writeSync(VARIANT &data){
 	HRESULT result = group.getSychIOInterface()->Write(1, &serversItemHandle, &data, &itemWriteErrors);
 	if (FAILED(result))
 	{
-		throw OPCException("write failed");
+		throw OPCException("write failed", result);
 	} 
 
-	if (FAILED(itemWriteErrors[0])){
+	result = itemWriteErrors[0];
+	if (FAILED(result)){
 		COPCClient::comFree(itemWriteErrors);
-		throw OPCException("write failed");
+		throw OPCException("write failed", result);
 	}
 
 	COPCClient::comFree(itemWriteErrors);
@@ -131,7 +132,7 @@ CTransaction * COPCItem::writeAsynch(VARIANT &data, ITransactionComplete *transa
 	
 	if (FAILED(result)){
 		delete trans;
-		throw OPCException("Asynch Write failed");
+		throw OPCException("Asynch Write failed", result);
 	}
 
 	trans->setCancelId(cancelID);

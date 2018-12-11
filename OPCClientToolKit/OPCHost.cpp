@@ -70,15 +70,24 @@ void CRemoteHost::makeRemoteObject(const IID requestedClass, const IID requested
 	reqInterface.hr = S_OK;
 
 	HRESULT result = CoCreateInstanceEx(requestedClass,NULL, CLSCTX_REMOTE_SERVER,
-	                                    &remoteServerInfo, 1, &reqInterface);
-
+										&remoteServerInfo, 1, &reqInterface);
+	
 	if (FAILED(result))
 	{
-		printf("Error %x\n", result);
-		throw OPCException("Failed to get remote interface");
+		// printf("Error %x\n", result);
+
+		// another way
+		athn.dwAuthnLevel = RPC_C_AUTHN_LEVEL_NONE;
+		result = CoCreateInstanceEx(requestedClass, NULL, CLSCTX_REMOTE_SERVER,
+									&remoteServerInfo, 1, &reqInterface);
+
+		if (FAILED(result))
+		{
+			throw OPCException("Failed to get remote interface", result);
+		}
 	}
 
-	*interfacePtr = reqInterface.pItf; // avoid ref counter getting incremented again
+	*interfacePtr = reqInterface.pItf; // avoid ref counter getting incremented again	
 }
 
 
@@ -137,7 +146,7 @@ COPCServer* CRemoteHost::connectDAServer(const std::string& serverProgIDOrClsID)
 		HRESULT hr = CLSIDFromString(strClsId, &clsid);
 
 		if (FAILED(hr))
-			throw OPCException("Invalid CLSID string");
+			throw OPCException("Invalid CLSID string", hr);
 	}
 	else {
 		clsid = GetCLSIDFromRemoteRegistry(host, serverProgIDOrClsID);
@@ -155,7 +164,7 @@ COPCServer* CRemoteHost::connectDAServer(const CLSID& serverClassID)
 	HRESULT result = iUnknown->QueryInterface(IID_IOPCServer, (void**)&iOpcServer);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed obtain IID_IOPCServer interface from server");
+		throw OPCException("Failed obtain IID_IOPCServer interface from server", result);
 	}
 
 	return new COPCServer(iOpcServer);
@@ -176,7 +185,7 @@ void CRemoteHost::getListOfDAServers(CATID cid, std::vector<std::string>& listOf
 	HRESULT result = iCatInfo->EnumClassesOfCategories(1, Implist, 0, NULL, &iEnum);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed to get enum for categeories");
+		throw OPCException("Failed to get enum for categeories", result);
 	}
 
 	GUID glist;
@@ -189,7 +198,7 @@ void CRemoteHost::getListOfDAServers(CATID cid, std::vector<std::string>& listOf
 
 		if (FAILED(res))
 		{
-			throw OPCException("Failed to get ProgId from ClassId");
+			throw OPCException("Failed to get ProgId from ClassId", res);
 		}
 		else
 		{
@@ -226,7 +235,7 @@ CLSID CRemoteHost::getCLSID(const std::string& serverProgID)
 
 	if (FAILED(result))
 	{
-		throw OPCException("Failed to get clsid");
+		throw OPCException("Failed to get clsid", result);
 	}
 
 	return clsId;
@@ -247,7 +256,7 @@ COPCServer* CLocalHost::connectDAServer(const std::string& serverProgID)
 	HRESULT result = CLSIDFromProgID(wideName, &clsid);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed to convert progID to class ID");
+		throw OPCException("Failed to convert progID to class ID", result);
 	}
 
 
@@ -255,21 +264,21 @@ COPCServer* CLocalHost::connectDAServer(const std::string& serverProgID)
 	result = CoGetClassObject(clsid, CLSCTX_LOCAL_SERVER, NULL, IID_IClassFactory, (void**)&iClassFactory);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed get Class factory");
+		throw OPCException("Failed get Class factory", result);
 	}
 
 	ATL::CComPtr<IUnknown> iUnknown;
 	result = iClassFactory->CreateInstance(NULL, IID_IUnknown, (void**)&iUnknown);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed get create OPC server ref");
+		throw OPCException("Failed get create OPC server ref", result);
 	}
 
 	ATL::CComPtr<IOPCServer> iOpcServer;
 	result = iUnknown->QueryInterface(IID_IOPCServer, (void**)&iOpcServer);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed obtain IID_IOPCServer interface from server");
+		throw OPCException("Failed obtain IID_IOPCServer interface from server", result);
 	}
 
 	return new COPCServer(iOpcServer);
@@ -283,21 +292,21 @@ COPCServer* CLocalHost::connectDAServer(const CLSID& clsid)
 
 	if (FAILED(result))
 	{
-		throw OPCException("Failed get Class factory");
+		throw OPCException("Failed get Class factory", result);
 	}
 
 	ATL::CComPtr<IUnknown> iUnknown;
 	result = iClassFactory->CreateInstance(NULL, IID_IUnknown, (void**)&iUnknown);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed get create OPC server ref");
+		throw OPCException("Failed get create OPC server ref", result);
 	}
 
 	ATL::CComPtr<IOPCServer> iOpcServer;
 	result = iUnknown->QueryInterface(IID_IOPCServer, (void**)&iOpcServer);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed obtain IID_IOPCServer interface from server");
+		throw OPCException("Failed obtain IID_IOPCServer interface from server", result);
 	}
 
 	return new COPCServer(iOpcServer);
@@ -313,14 +322,14 @@ void CLocalHost::getListOfDAServers(CATID cid, std::vector<std::string>& listOfP
 	HRESULT result = CoCreateInstance(CLSID_StdComponentCategoriesMgr, NULL, CLSCTX_INPROC_SERVER, IID_ICatInformation, (void **)&iCatInfo);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed to get IID_ICatInformation");
+		throw OPCException("Failed to get IID_ICatInformation", result);
 	}
 
 	ATL::CComPtr<IEnumCLSID> iEnum;
 	result = iCatInfo->EnumClassesOfCategories(1, Implist, 0, NULL, &iEnum);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed to get enum for categeories");
+		throw OPCException("Failed to get enum for categeories", result);
 	}
 
 	GUID glist;
@@ -331,7 +340,7 @@ void CLocalHost::getListOfDAServers(CATID cid, std::vector<std::string>& listOfP
 		HRESULT res = ProgIDFromCLSID(glist, &progID);
 		if (FAILED(res))
 		{
-			throw OPCException("Failed to get ProgId from ClassId");
+			throw OPCException("Failed to get ProgId from ClassId", res);
 		}
 		else
 		{

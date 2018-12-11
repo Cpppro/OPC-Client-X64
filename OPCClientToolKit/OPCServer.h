@@ -86,6 +86,13 @@ private:
 		return iOpcProperties;
 	}
 
+
+	/**
+    * Browse the OPC servers namespace.
+    * This is done HIERARCHIAL mode
+    */
+    void getItemNames(IOPCBrowseServerAddressSpace*, std::vector<std::string> & opcItemNames);
+
 public:
 
 	/**
@@ -100,8 +107,7 @@ public:
 	
 	/**
 	* Browse the OPC servers namespace.
-	* This is currently done FLAT mode
-	* TODO implement browsing of structured namespace
+	* This is currently done FLAT mode and HIERARCHIAL mode
 	*/
 	void getItemNames(std::vector<std::string> & opcItemNames);
 

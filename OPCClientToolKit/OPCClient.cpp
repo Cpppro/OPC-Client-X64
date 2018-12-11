@@ -48,7 +48,7 @@ void COPCClient::init(OPCOLEInitMode mode)
 	
 	if (FAILED(result))
 	{
-		throw OPCException("CoInitialize failed");
+		throw OPCException("CoInitialize failed", result);
 	}
 
 	CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_NONE, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
@@ -58,7 +58,7 @@ void COPCClient::init(OPCOLEInitMode mode)
 		result = CoGetMalloc(MEMCTX_TASK, &iMalloc);
 		if (FAILED(result))
 		{
-			throw OPCException("CoGetMalloc failed");
+			throw OPCException("CoGetMalloc failed", result);
 		}
 	}
 	

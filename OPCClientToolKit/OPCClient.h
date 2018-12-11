@@ -56,7 +56,7 @@ class  OPCException:public ATL::CAtlException{
 private:
 	std::string why;
 public:
-	OPCException(const std::string& what,HRESULT code = 0):/*ATL::CAtlException(code),*/why(what){}
+	OPCException(const std::string& what,HRESULT code = 0): ATL::CAtlException(code), why(what){}
 
 	const std::string & reasonString() const{
 		return why;

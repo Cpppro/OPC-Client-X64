@@ -77,6 +77,10 @@ public:
 	DWORD getAccessRights() const{
 		return dwAccessRights;
 	}
+	
+	VARTYPE getCanonicalDataType() const{
+		return vtCanonicalDataType;
+	}
 
 	OPCHANDLE getHandle() const{
 		return serversItemHandle;

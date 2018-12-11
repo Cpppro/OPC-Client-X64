@@ -206,22 +206,22 @@ opcServer(server)
 		0, &groupHandle, &revisedUpdateRate_ms, IID_IOPCGroupStateMgt, (LPUNKNOWN*)&iStateManagement);
 	if (FAILED(result))
 	{
-		throw OPCException("Failed to Add group");
+		throw OPCException("Failed to Add group", result);
 	} 
 
 	result = iStateManagement->QueryInterface(IID_IOPCSyncIO, (void**)&iSychIO);
 	if (FAILED(result)){
-		throw OPCException("Failed to get IID_IOPCSyncIO");
+		throw OPCException("Failed to get IID_IOPCSyncIO", result);
 	}
 
 	result = iStateManagement->QueryInterface(IID_IOPCAsyncIO2, (void**)&iAsych2IO);
 	if (FAILED(result)){
-		throw OPCException("Failed to get IID_IOPCAsyncIO2");
+		throw OPCException("Failed to get IID_IOPCAsyncIO2", result);
 	}
 
 	result = iStateManagement->QueryInterface(IID_IOPCItemMgt, (void**)&iItemManagement);
 	if (FAILED(result)){
-		throw OPCException("Failed to get IID_IOPCItemMgt");
+		throw OPCException("Failed to get IID_IOPCItemMgt", result);
 	}
 }
 
@@ -260,7 +260,7 @@ void COPCGroup::readSync(std::vector<COPCItem *>& items, COPCItem_DataMap & opcD
 	HRESULT	result = iSychIO->Read(source, noItems, serverHandles, &itemState, &itemResult);
 	if (FAILED(result)){
 		delete []serverHandles;
-		throw OPCException("Read failed");
+		throw OPCException("Read failed", result);
 	} 
 
 	for (unsigned i = 0; i < noItems; i++){
@@ -292,7 +292,7 @@ CTransaction * COPCGroup::readAsync(std::vector<COPCItem *>& items, ITransaction
 		delete [] serverHandles;
 		if (FAILED(result)){
 			delete trans;
-			throw OPCException("Asynch Read failed");
+			throw OPCException("Asynch Read failed", result);
 		}
 
 		trans->setCancelId(cancelID);
@@ -321,7 +321,7 @@ CTransaction * COPCGroup::refresh(OPCDATASOURCE source, ITransactionComplete *tr
 	HRESULT result = iAsych2IO->Refresh2(source, (DWORD)trans, &cancelID);
 	if (FAILED(result)){
 		delete trans;
-		throw OPCException("refresh failed");
+		throw OPCException("refresh failed", result);
 	}
 
 	return trans;
@@ -373,7 +373,7 @@ int COPCGroup::addItems(std::vector<std::string>& itemName, std::vector<COPCItem
 		delete tpm[i];
 	}
 	if (FAILED(result)){
-		throw OPCException("Failed to add items");
+		throw OPCException("Failed to add items", result);
 	}
 
 
@@ -415,14 +415,14 @@ void COPCGroup::enableAsynch(IAsynchDataCallback &handler){
 	HRESULT result = iStateManagement->QueryInterface(IID_IConnectionPointContainer, (void**)&iConnectionPointContainer);
 	if (FAILED(result))
 	{
-		throw OPCException("Could not get IID_IConnectionPointContainer");
+		throw OPCException("Could not get IID_IConnectionPointContainer", result);
 	}
 
 
 	result = iConnectionPointContainer->FindConnectionPoint(IID_IOPCDataCallback, &iAsynchDataCallbackConnectionPoint);
 	if (FAILED(result))
 	{
-		throw OPCException("Could not get IID_IOPCDataCallback");
+		throw OPCException("Could not get IID_IOPCDataCallback", result);
 	}
 
 
@@ -432,7 +432,7 @@ void COPCGroup::enableAsynch(IAsynchDataCallback &handler){
 	{
 		iAsynchDataCallbackConnectionPoint = NULL;
 		asynchDataCallBackHandler = NULL;
-		throw OPCException("Failed to set DataCallbackConnectionPoint");
+		throw OPCException("Failed to set DataCallbackConnectionPoint", result);
 	}
 
 	userAsynchCBHandler = &handler;

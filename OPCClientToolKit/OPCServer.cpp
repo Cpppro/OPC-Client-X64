@@ -59,41 +59,82 @@ COPCGroup *COPCServer::makeGroup(const std::string & groupName, bool active, uns
 }
 
 
+void COPCServer::getItemNames(IOPCBrowseServerAddressSpace* pParent, std::vector<std::string> & opcItemNames)
+{
+    IEnumString *pEnum;
+    WCHAR *str, *fullName;
+    ULONG fetched;
+
+    HRESULT result = pParent->BrowseOPCItemIDs(OPC_LEAF, L"", VT_EMPTY, 0, &pEnum);
+    pEnum->Next(1, &str, &fetched);
+
+    while (fetched != 0)
+    {
+        pParent->GetItemID(str, &fullName); // get full Item ID
+        // result in str;
+        USES_CONVERSION;
+        COLE2T cStr(fullName);
+        opcItemNames.push_back((char*)cStr);
+        COPCClient::comFree(fullName);
+        COPCClient::comFree(str);
+
+        pEnum->Next(1, &str, &fetched);
+    }
+
+    pParent->BrowseOPCItemIDs(OPC_BRANCH, L"", VT_EMPTY, 0, &pEnum);
+    pEnum->Next(1, &str, &fetched);
+
+    while (fetched != 0)
+    {
+        // result in str;
+        result = pParent->ChangeBrowsePosition(OPC_BROWSE_DOWN, str);
+        if (S_OK == result)
+        {
+            getItemNames(pParent, opcItemNames);  // recursively
+        }
+        pParent->ChangeBrowsePosition(OPC_BROWSE_UP, str);
+        pEnum->Next(1, &str, &fetched);
+    }
+}
+
+
 void COPCServer::getItemNames(std::vector<std::string> & opcItemNames){
 	if (!iOpcNamespace) return;
 
-	OPCNAMESPACETYPE nameSpaceType;
+	OPCNAMESPACETYPE nameSpaceType = OPC_NS_FLAT;
 	HRESULT result = iOpcNamespace->QueryOrganization(&nameSpaceType);
 
-	USES_CONVERSION;
-	int v = 0;
-	WCHAR emptyString[] = {0};
-	//result = iOpcNamespace->ChangeBrowsePosition(OPC_BROWSE_TO,emptyString);
+	if (nameSpaceType == OPC_NS_FLAT) {
+        USES_CONVERSION;
+        int v = 0;
+        WCHAR emptyString[] = {0};
 
-	ATL::CComPtr<IEnumString> iEnum;
-	result = iOpcNamespace->BrowseOPCItemIDs(OPC_FLAT,emptyString,VT_EMPTY,0,(&iEnum));
-	if (FAILED(result)){
-		return;
-	}
+        ATL::CComPtr<IEnumString> iEnum;
+        result = iOpcNamespace->BrowseOPCItemIDs(OPC_FLAT, emptyString, VT_EMPTY, 0, (&iEnum));
 
-
-	 
-    WCHAR * str;
-    ULONG strSize;
-	while((result = iEnum->Next(1, &str, &strSize)) == S_OK)
-	{
-		WCHAR * fullName;
-		result = iOpcNamespace->GetItemID(str, &fullName);
-		if (SUCCEEDED(result)){
-			USES_CONVERSION;
-			COLE2T cStr(fullName);
-			//char * cStr = OLE2T(str);
-			//printf("Adding %s\n", cStr);
-			opcItemNames.push_back((char*)cStr);
-			COPCClient::comFree(fullName);
-		}
-		COPCClient::comFree(str);
-	}
+        WCHAR * str;
+        ULONG strSize;
+        while ((result = iEnum->Next(1, &str, &strSize)) == S_OK)
+        {
+            WCHAR * fullName;
+            result = iOpcNamespace->GetItemID(str, &fullName);
+            if (SUCCEEDED(result)) {
+                USES_CONVERSION;
+                COLE2T cStr(fullName);
+                //char * cStr = OLE2T(str);
+                //printf("Adding %s\n", cStr);
+                opcItemNames.push_back((char*)cStr);
+                COPCClient::comFree(fullName);
+            }
+            COPCClient::comFree(str);
+        }
+    }
+    else 
+    {
+        IOPCBrowseServerAddressSpace* pBrowse;
+        HRESULT res = iOpcServer->QueryInterface(IID_IOPCBrowseServerAddressSpace, (void**)&pBrowse);
+        getItemNames(pBrowse, opcItemNames);
+    }
 }
 
 
@@ -101,7 +142,7 @@ void COPCServer::getStatus(ServerStatus &status){
 	OPCSERVERSTATUS *serverStatus;
 	HRESULT result = iOpcServer->GetStatus(&serverStatus);
 	if (FAILED(result)){
-		throw OPCException("Failed to get status");
+		throw OPCException("Failed to get status", result);
 	}
 
 	status.ftStartTime = serverStatus->ftStartTime;
